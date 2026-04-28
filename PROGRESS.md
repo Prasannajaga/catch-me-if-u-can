@@ -95,6 +95,56 @@ caught: 80%
     "no_checkpoint": false
 }
 ```
-
 so it appear it doens't matter the how long the run is
 the better hyperparams and update with learning rate the good the model less likely getting caught
+
+## Resume improvements 
+
+## First Resume 
+
+**utilmate-run-1M**
+
+Summary
+episodes:       100
+mean_reward:    139.23
+mean_steps:     399.08
+catch_rate:     36.00%
+survival_rate:  64.00%
+
+
+**ultimate_run_1m_resume_v1**
+
+Summary
+episodes:       100
+mean_reward:    184.12
+mean_steps:     481.97
+catch_rate:     21.00%
+survival_rate:  79.00%
+
+we have resume the training from the runs/ultimate_run-1M/catchme_ppo.zip our prev best checkpoitn to teach the better 
+it imrpoved by by 15% margin which is really great 
+
+## Second Resume 
+
+**ultimate_run_1m_resume_v2**
+
+Summary
+episodes:       300
+mean_reward:    186.05
+mean_steps:     477.54
+catch_rate:     21.67%
+survival_rate:  78.33%
+
+
+**ultimate_run_1m_resume_v1**
+
+Summary
+episodes:       300
+mean_reward:    173.96
+mean_steps:     456.77
+catch_rate:     25.33%
+survival_rate:  74.67%
+
+pretty awesome improvement over here 
+
+

@@ -90,6 +90,7 @@ class PygameRenderer:
 # ---------------------------------------------------------------------------
 _STICKMAN_RAW: np.ndarray | None = None
 _SPRITE_CACHE: dict[int, list[tuple[np.ndarray, np.ndarray]]] = {}
+_LAST_LIVE_FACING_X = 1  # 1 = face right, -1 = face left
 
 
 def _get_sprite_frames(
@@ -133,6 +134,7 @@ def draw_live_overlay(
     frame_bgr: np.ndarray,
     *,
     character_position: np.ndarray,
+    character_velocity: np.ndarray | None,
     player_position: np.ndarray | None,
     catch_radius: float,
     caught: bool,
@@ -149,6 +151,7 @@ def draw_live_overlay(
     char_x = int(float(character_position[0]) * width)
     char_y = int(float(character_position[1]) * height)
     char_radius = max(8, int(catch_radius * min(width, height) * 0.55))
+    facing_x = _resolve_facing_x(character_velocity)
 
     # --- ANIMATE STICKMAN SPRITE (cached, single-pass compositing) ---
     sprite_size = char_radius * 4
@@ -157,6 +160,9 @@ def draw_live_overlay(
     if sprite_frames:
         frame_idx = int(time.time() * 8) % 4
         colored, mask_3ch = sprite_frames[frame_idx]
+        if facing_x < 0:
+            colored = cv2.flip(colored, 1)
+            mask_3ch = cv2.flip(mask_3ch, 1)
 
         half = sprite_size // 2
         y1_raw, y2_raw = char_y - half, char_y + half
@@ -192,3 +198,18 @@ def draw_live_overlay(
     cv2.putText(output, status_text, (20, 32), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (245, 245, 245), 2)
     cv2.putText(output, "press q to quit", (20, height - 24), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (245, 245, 245), 2)
     return output
+
+
+def _resolve_facing_x(character_velocity: np.ndarray | None, deadzone: float = 1e-5) -> int:
+    """Choose sprite facing based on horizontal movement, with sticky fallback."""
+    global _LAST_LIVE_FACING_X
+
+    if character_velocity is None or character_velocity.shape[0] < 1:
+        return _LAST_LIVE_FACING_X
+
+    vx = float(character_velocity[0])
+    if vx > deadzone:
+        _LAST_LIVE_FACING_X = 1
+    elif vx < -deadzone:
+        _LAST_LIVE_FACING_X = -1
+    return _LAST_LIVE_FACING_X

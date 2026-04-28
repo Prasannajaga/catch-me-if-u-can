@@ -25,6 +25,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camera", type=int, default=0)
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
+    parser.add_argument("--fullscreen", action="store_true", help="Run the live window in fullscreen mode")
+    parser.add_argument(
+        "--edge-margin",
+        type=float,
+        default=0.06,
+        help="Expand hand coordinate range near borders (0.0 disables; typical 0.03-0.08).",
+    )
     parser.add_argument("--catch-radius", type=float, default=0.075)
     parser.add_argument("--character-speed", type=float, default=0.035)
     return parser.parse_args()
@@ -53,10 +60,20 @@ def main() -> None:
         flip_horizontal=True,
     )
 
+    edge_margin = float(np.clip(args.edge_margin, 0.0, 0.45))
+    window_name = "Catch Me If You Can - Live"
+    fullscreen_helper = FullscreenWindow(window_name, enabled=args.fullscreen)
+    fullscreen_helper.create()
+    if not args.fullscreen:
+        cv2.resizeWindow(window_name, args.width, args.height)
+
     with Camera(camera_config) as camera, HandTracker() as tracker:
         while True:
             frame = camera.read()
             hand_point = tracker.detect(frame)
+            if hand_point is not None and edge_margin > 0.0:
+                hand_point.x = stretch_edge_coordinate(hand_point.x, margin=edge_margin)
+                hand_point.y = stretch_edge_coordinate(hand_point.y, margin=edge_margin)
 
             caught = False
             player_position: np.ndarray | None = None
@@ -100,13 +117,15 @@ def main() -> None:
             output = draw_live_overlay(
                 frame,
                 character_position=character.position,
+                character_velocity=character.velocity,
                 player_position=player_position,
                 catch_radius=args.catch_radius,
                 caught=caught,
                 status_text=status_text,
             )
 
-            cv2.imshow("Catch Me If You Can - Live", output)
+            cv2.imshow(window_name, output)
+            fullscreen_helper.apply_if_needed()
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
@@ -152,6 +171,59 @@ def sample_safe_position(
             return position
     # Fallback — centre of the screen.
     return np.array([0.5, 0.5], dtype=np.float32)
+
+
+def stretch_edge_coordinate(value: float, margin: float) -> float:
+    """Expand interior [margin, 1-margin] to full [0, 1] to improve edge reach."""
+    if margin <= 0.0:
+        return float(np.clip(value, 0.0, 1.0))
+    lo = margin
+    hi = 1.0 - margin
+    if hi <= lo:
+        return float(np.clip(value, 0.0, 1.0))
+    stretched = (float(value) - lo) / (hi - lo)
+    return float(np.clip(stretched, 0.0, 1.0))
+
+
+class FullscreenWindow:
+    """Best-effort cross-platform fullscreen helper for OpenCV HighGUI."""
+
+    def __init__(self, window_name: str, *, enabled: bool) -> None:
+        self.window_name = window_name
+        self.enabled = enabled
+        self._applied = False
+        self._tries = 0
+        self._max_tries = 20
+        self._wnd_prop_fullscreen = getattr(cv2, "WND_PROP_FULLSCREEN", 0)
+        self._window_fullscreen = getattr(cv2, "WINDOW_FULLSCREEN", 1)
+
+    def create(self) -> None:
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        # Some Linux backends only honor fullscreen after first imshow.
+        if self.enabled:
+            self._try_apply_fullscreen()
+
+    def apply_if_needed(self) -> None:
+        if not self.enabled or self._applied:
+            return
+        if self._tries >= self._max_tries:
+            return
+        self._try_apply_fullscreen()
+
+    def _try_apply_fullscreen(self) -> None:
+        self._tries += 1
+        try:
+            cv2.setWindowProperty(
+                self.window_name,
+                self._wnd_prop_fullscreen,
+                float(self._window_fullscreen),
+            )
+            current = cv2.getWindowProperty(self.window_name, self._wnd_prop_fullscreen)
+            if current >= 0:
+                self._applied = True
+        except cv2.error:
+            # Keep trying over the next few frames for Linux/Wayland/X11 quirks.
+            return
 
 
 if __name__ == "__main__":

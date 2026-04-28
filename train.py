@@ -51,6 +51,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-freq", type=int, default=25_000, help="Checkpoint frequency in env timesteps")
     parser.add_argument("--no-eval", action="store_true", help="Disable periodic evaluation callback")
     parser.add_argument("--no-checkpoint", action="store_true", help="Disable periodic checkpoint callback")
+    parser.add_argument(
+        "--resume-from",
+        type=Path,
+        default=None,
+        help="Path to an existing PPO .zip model to continue training from.",
+    )
+    parser.add_argument(
+        "--reset-num-timesteps",
+        action="store_true",
+        help="When resuming, reset SB3 timestep counter instead of continuing from loaded model timesteps.",
+    )
     return parser.parse_args()
 
 
@@ -71,6 +82,8 @@ def main() -> None:
     eval_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     args.model_path.parent.mkdir(parents=True, exist_ok=True)
+    if args.resume_from is not None and not args.resume_from.exists():
+        raise FileNotFoundError(f"Resume model not found: {args.resume_from}")
 
     # Save configuration
     with open(run_dir / "config.json", "w") as f:
@@ -97,19 +110,23 @@ def main() -> None:
 
     eval_env = Monitor(CatchMeEnv(max_steps=600))
 
-    model = PPO(
-        policy="MlpPolicy",
-        env=env,
-        verbose=1,
-        seed=args.seed,
-        n_steps=args.n_steps,
-        batch_size=args.batch_size,
-        learning_rate=args.learning_rate,
-        gamma=args.gamma,
-        gae_lambda=args.gae_lambda,
-        clip_range=args.clip_range,
-        ent_coef=args.ent_coef,
-    )
+    if args.resume_from is not None:
+        print(f"Resuming from model: {args.resume_from}")
+        model = PPO.load(args.resume_from, env=env)
+    else:
+        model = PPO(
+            policy="MlpPolicy",
+            env=env,
+            verbose=1,
+            seed=args.seed,
+            n_steps=args.n_steps,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            gamma=args.gamma,
+            gae_lambda=args.gae_lambda,
+            clip_range=args.clip_range,
+            ent_coef=args.ent_coef,
+        )
 
     model.set_logger(logger)
 
@@ -137,8 +154,15 @@ def main() -> None:
 
     callback = CallbackList(callbacks) if callbacks else None
 
-    model.learn(total_timesteps=args.timesteps, callback=callback, progress_bar=True)
+    model.learn(
+        total_timesteps=args.timesteps,
+        callback=callback,
+        progress_bar=True,
+        reset_num_timesteps=args.reset_num_timesteps or args.resume_from is None,
+    )
     model.save(args.model_path)
+    run_final_model_path = run_dir / "catchme_ppo.zip"
+    shutil.copy2(args.model_path, run_final_model_path)
     final_steps = int(model.num_timesteps)
 
     # Keep the existing final model path, and also write a step-tagged copy.
@@ -155,6 +179,7 @@ def main() -> None:
     eval_env.close()
 
     print(f"Saved final model to: {args.model_path}")
+    print(f"Saved run final model to: {run_final_model_path}")
     print(f"Saved step-tagged final model to: {final_step_model_path}")
     if not args.no_eval:
         print(f"Best eval model path: {best_model_path}")
