@@ -16,6 +16,8 @@ from vision.hand_tracker import HandTracker
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_PATH = ROOT / "models" / "catchme_ppo.zip"
 
+INVULNERABILITY_FRAMES = 30
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Play Catch Me If You Can with webcam hand tracking")
@@ -33,7 +35,7 @@ def main() -> None:
     if not args.model_path.exists():
         raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m catchme.train")
 
-    model = PPO.load(args.model_path )
+    model = PPO.load(args.model_path)
     rng = np.random.default_rng(42)
     character = Character(
         position=np.array([0.5, 0.5], dtype=np.float32),
@@ -42,6 +44,7 @@ def main() -> None:
     )
 
     previous_player_position: np.ndarray | None = None
+    invulnerable_remaining = 0
 
     camera_config = CameraConfig(
         device_index=args.camera,
@@ -58,6 +61,9 @@ def main() -> None:
             caught = False
             player_position: np.ndarray | None = None
             status_text = "show your hand to start"
+
+            if invulnerable_remaining > 0:
+                invulnerable_remaining -= 1
 
             if hand_point is not None:
                 player_position = hand_point.as_array()
@@ -78,12 +84,16 @@ def main() -> None:
                 character.apply_action(int(action))
 
                 distance = float(np.linalg.norm(character.position - player_position))
-                caught = distance <= args.catch_radius
                 status_text = f"distance={distance:.3f}"
 
-                if caught:
+                # Only check catch when invulnerability has expired.
+                if invulnerable_remaining <= 0 and distance <= args.catch_radius:
+                    caught = True
                     character.reset(sample_safe_position(rng, player_position))
+                    invulnerable_remaining = INVULNERABILITY_FRAMES
                     status_text = "caught - respawned"
+                elif invulnerable_remaining > 0:
+                    status_text += f"  [shield {invulnerable_remaining}]"
             else:
                 previous_player_position = None
 
@@ -125,14 +135,23 @@ def build_live_observation(
     ).astype(np.float32)
 
 
-def sample_safe_position(rng: np.random.Generator, player_position: np.ndarray) -> np.ndarray:
-    """Respawn the character away from the hand."""
-    position = rng.uniform(low=0.08, high=0.92, size=(2,)).astype(np.float32)
+def sample_safe_position(
+    rng: np.random.Generator,
+    player_position: np.ndarray,
+    margin: float = 0.10,
+    min_distance: float = 0.45,
+) -> np.ndarray:
+    """Respawn the character away from the hand and inset from edges.
+
+    ``margin`` keeps the character's sprite fully on-screen.
+    ``min_distance`` ensures the respawn isn't immediately on top of the player.
+    """
     for _ in range(100):
-        if float(np.linalg.norm(position - player_position)) > 0.45:
+        position = rng.uniform(low=margin, high=1.0 - margin, size=(2,)).astype(np.float32)
+        if float(np.linalg.norm(position - player_position)) > min_distance:
             return position
-        position = rng.uniform(low=0.08, high=0.92, size=(2,)).astype(np.float32)
-    return position
+    # Fallback — centre of the screen.
+    return np.array([0.5, 0.5], dtype=np.float32)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,37 @@
+{
+    "metrics": {
+        "episodes": 6682,
+        "total_timesteps": 200668,
+        "best_episode_reward": 22.047379,
+        "best_rolling_reward": 5.4830046,
+        "final_rolling_reward": 2.9534222,
+        "best_rolling_length": 39.86,
+        "final_rolling_length": 36.32,
+        "reward_improvement_pct": 213.15924858760843,
+        "length_improvement_pct": 48.563928666814135
+    },
+    "diagnoses": {
+        "GOOD_LEARNING": false,
+        "PLATEAU": false,
+        "COLLAPSE": true,
+        "NO_LEARNING": false,
+        "POSSIBLE_EDGE_EXPLOIT": false,
+        "UNSTABLE_PPO": false,
+        "VALUE_FUNCTION_BAD": false,
+        "EXPLORATION_COLLAPSE": false
+    },
+    "recommendations": [
+        "use best checkpoint, not final model",
+        "lower learning_rate",
+        "lower clip_range",
+        "add EvalCallback and save best model",
+        "stop training when eval reward stops improving"
+    ],
+    "plot_paths": {
+        "reward_diagnostics": "runs/200K-experiment/analysis/reward_diagnostics.png",
+        "length_diagnostics": "runs/200K-experiment/analysis/length_diagnostics.png",
+        "ppo_stability": "runs/200K-experiment/analysis/ppo_stability.png",
+        "value_function": "runs/200K-experiment/analysis/value_function.png",
+        "training_summary": "runs/200K-experiment/analysis/training_summary.png"
+    }
+}

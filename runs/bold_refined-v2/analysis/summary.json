@@ -1,0 +1,37 @@
+{
+    "metrics": {
+        "episodes": 10128,
+        "total_timesteps": 303005,
+        "best_episode_reward": 21.588931,
+        "best_rolling_reward": 4.778326859999999,
+        "final_rolling_reward": 2.7823286799999996,
+        "best_rolling_length": 39.18,
+        "final_rolling_length": 35.3,
+        "reward_improvement_pct": 210.01268066756276,
+        "length_improvement_pct": 51.9961264520312
+    },
+    "diagnoses": {
+        "GOOD_LEARNING": false,
+        "PLATEAU": false,
+        "COLLAPSE": true,
+        "NO_LEARNING": false,
+        "POSSIBLE_EDGE_EXPLOIT": false,
+        "UNSTABLE_PPO": false,
+        "VALUE_FUNCTION_BAD": false,
+        "EXPLORATION_COLLAPSE": false
+    },
+    "recommendations": [
+        "use best checkpoint, not final model",
+        "lower learning_rate",
+        "lower clip_range",
+        "add EvalCallback and save best model",
+        "stop training when eval reward stops improving"
+    ],
+    "plot_paths": {
+        "reward_diagnostics": "runs/bold_refined-v2/analysis/reward_diagnostics.png",
+        "length_diagnostics": "runs/bold_refined-v2/analysis/length_diagnostics.png",
+        "ppo_stability": "runs/bold_refined-v2/analysis/ppo_stability.png",
+        "value_function": "runs/bold_refined-v2/analysis/value_function.png",
+        "training_summary": "runs/bold_refined-v2/analysis/training_summary.png"
+    }
+}

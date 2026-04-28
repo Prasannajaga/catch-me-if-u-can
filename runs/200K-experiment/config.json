@@ -1,0 +1,15 @@
+{
+    "run_name": "200K-experiment",
+    "timesteps": 200000,
+    "n_envs": 4,
+    "seed": 7,
+    "n_steps": 1024,
+    "batch_size": 256,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.01,
+    "check_env": true,
+    "render_test": false
+}

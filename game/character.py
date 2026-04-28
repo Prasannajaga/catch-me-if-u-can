@@ -52,8 +52,13 @@ class Character:
         self.velocity = direction * self.max_speed
         next_position = self.position + self.velocity
 
-        hit_wall = bool(np.any(next_position < 0.0) or np.any(next_position > 1.0))
-        self.position = np.clip(next_position, 0.0, 1.0).astype(np.float32)
+        margin = self.radius
+        hit_wall = bool(
+            np.any(next_position < margin) or np.any(next_position > 1.0 - margin)
+        )
+        self.position = np.clip(
+            next_position, margin, 1.0 - margin
+        ).astype(np.float32)
         return hit_wall
 
     def reset(self, position: np.ndarray) -> None:

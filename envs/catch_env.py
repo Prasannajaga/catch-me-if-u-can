@@ -208,7 +208,7 @@ class CatchMeEnv(gym.Env):
         x, y = self.character.position
         edge_distance = min(x, 1.0 - x, y, 1.0 - y)
         edge_margin = 0.08
-        edge_penalty = max(0.0, edge_margin - edge_distance) / edge_margin
+        edge_penalty = 2.5 * max(0.0, edge_margin - edge_distance) / edge_margin
 
         wall_penalty = 0.2 if hit_wall else 0.0
 

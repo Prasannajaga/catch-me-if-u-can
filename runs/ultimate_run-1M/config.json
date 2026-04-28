@@ -1,0 +1,15 @@
+{
+    "run_name": "ultimate_run-1M",
+    "timesteps": 1000000,
+    "n_envs": 4,
+    "seed": 7,
+    "n_steps": 4096,
+    "batch_size": 512,
+    "learning_rate": 0.0005,
+    "gamma": 0.995,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.001,
+    "check_env": false,
+    "render_test": false
+}

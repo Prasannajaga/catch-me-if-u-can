@@ -1,0 +1,33 @@
+{
+    "metrics": {
+        "episodes": 10212,
+        "total_timesteps": 303035,
+        "best_episode_reward": 25.060679,
+        "best_rolling_reward": 6.001807199999999,
+        "final_rolling_reward": 4.475296080000001,
+        "best_rolling_length": 40.06,
+        "final_rolling_length": 37.04,
+        "reward_improvement_pct": 259.9925889740075,
+        "length_improvement_pct": 60.614681265082346
+    },
+    "diagnoses": {
+        "GOOD_LEARNING": false,
+        "PLATEAU": false,
+        "COLLAPSE": false,
+        "NO_LEARNING": false,
+        "POSSIBLE_EDGE_EXPLOIT": false,
+        "UNSTABLE_PPO": false,
+        "VALUE_FUNCTION_BAD": false,
+        "EXPLORATION_COLLAPSE": false
+    },
+    "recommendations": [
+        "Need more data"
+    ],
+    "plot_paths": {
+        "reward_diagnostics": "runs/bold_refined-v1/analysis/reward_diagnostics.png",
+        "length_diagnostics": "runs/bold_refined-v1/analysis/length_diagnostics.png",
+        "ppo_stability": "runs/bold_refined-v1/analysis/ppo_stability.png",
+        "value_function": "runs/bold_refined-v1/analysis/value_function.png",
+        "training_summary": "runs/bold_refined-v1/analysis/training_summary.png"
+    }
+}

@@ -27,7 +27,7 @@ and then transfer that to the live environment like fake it till you make it
 ## CLI
 
 ```pythona
-python -m train --timesteps 50000 --check-env
+python -m train --timesteps 50000 --run-name first-experiment --check-env
 python -m eval --episodes 5 --render
 python -m play_live
 ```

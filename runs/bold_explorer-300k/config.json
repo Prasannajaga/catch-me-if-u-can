@@ -1,0 +1,15 @@
+{
+    "run_name": "bold_explorer-300k",
+    "timesteps": 300000,
+    "n_envs": 4,
+    "seed": 7,
+    "n_steps": 1024,
+    "batch_size": 256,
+    "learning_rate": 0.0003,
+    "gamma": 0.999,
+    "gae_lambda": 0.98,
+    "clip_range": 0.2,
+    "ent_coef": 0.05,
+    "check_env": false,
+    "render_test": false
+}

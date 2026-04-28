@@ -1,0 +1,284 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>RL Training Comparison Dashboard</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg: #0f172a;
+                --card-bg: #1e293b;
+                --text: #f8fafc;
+                --accent: #38bdf8;
+                --border: #334155;
+            }
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 40px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .container {
+                width: 100%;
+                max-width: 1200px;
+            }
+            h1 {
+                font-weight: 600;
+                font-size: 2.5rem;
+                margin-bottom: 30px;
+                background: linear-gradient(to right, #38bdf8, #818cf8);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .compare-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                background: var(--card-bg);
+                border-radius: 12px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            }
+            th {
+                background-color: var(--border);
+                color: var(--accent);
+                text-align: left;
+                padding: 16px;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+                letter-spacing: 0.05em;
+            }
+            td {
+                padding: 16px;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.95rem;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            tr:hover td {
+                background-color: rgba(56, 189, 248, 0.05);
+            }
+            .badge {
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                background: var(--border);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Training Comparison</h1>
+            <table class="dataframe compare-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Run Name</th>
+      <th>Learning Rate</th>
+      <th>Batch Size</th>
+      <th>Steps</th>
+      <th>Ent Coef</th>
+      <th>Gamma</th>
+      <th>Total Timesteps</th>
+      <th>Final Mean Reward</th>
+      <th>Final Value Loss</th>
+      <th>Final Entropy</th>
+      <th>Final Approx KL</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>bold_refined-v2-600K</td>
+      <td>0.00050</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.995</td>
+      <td>606,208</td>
+      <td>43.90</td>
+      <td>13.2411</td>
+      <td>-0.6219</td>
+      <td>0.004766</td>
+    </tr>
+    <tr>
+      <td>quick_learner</td>
+      <td>0.00070</td>
+      <td>128</td>
+      <td>512</td>
+      <td>0.010</td>
+      <td>0.990</td>
+      <td>200,704</td>
+      <td>24.66</td>
+      <td>6.7688</td>
+      <td>-0.3649</td>
+      <td>0.004169</td>
+    </tr>
+    <tr>
+      <td>bold_refined-v2-400K</td>
+      <td>0.00030</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.995</td>
+      <td>401,408</td>
+      <td>5.40</td>
+      <td>2.2697</td>
+      <td>-1.2388</td>
+      <td>0.004833</td>
+    </tr>
+    <tr>
+      <td>bold_refined-v1</td>
+      <td>0.00030</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.999</td>
+      <td>303,104</td>
+      <td>4.06</td>
+      <td>2.7217</td>
+      <td>-1.3056</td>
+      <td>0.005371</td>
+    </tr>
+    <tr>
+      <td>200K-experiment</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.010</td>
+      <td>0.990</td>
+      <td>200,704</td>
+      <td>3.69</td>
+      <td>2.8370</td>
+      <td>-1.4480</td>
+      <td>0.005377</td>
+    </tr>
+    <tr>
+      <td>bold_refined-v2</td>
+      <td>0.00030</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.995</td>
+      <td>303,104</td>
+      <td>3.64</td>
+      <td>2.2043</td>
+      <td>-1.4114</td>
+      <td>0.004946</td>
+    </tr>
+    <tr>
+      <td>bold_explorer-300k</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.050</td>
+      <td>0.999</td>
+      <td>303,104</td>
+      <td>3.22</td>
+      <td>2.9501</td>
+      <td>-1.8093</td>
+      <td>0.005624</td>
+    </tr>
+    <tr>
+      <td>bold_explorer-seed-142</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.050</td>
+      <td>0.999</td>
+      <td>200,704</td>
+      <td>1.59</td>
+      <td>4.3291</td>
+      <td>-1.8534</td>
+      <td>0.006713</td>
+    </tr>
+    <tr>
+      <td>bold_refined-v2-b1024</td>
+      <td>0.00030</td>
+      <td>1024</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.995</td>
+      <td>303,104</td>
+      <td>1.49</td>
+      <td>2.9164</td>
+      <td>-1.5803</td>
+      <td>0.004918</td>
+    </tr>
+    <tr>
+      <td>bold_explorer</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.050</td>
+      <td>0.999</td>
+      <td>200,704</td>
+      <td>1.43</td>
+      <td>3.3152</td>
+      <td>-1.9076</td>
+      <td>0.004852</td>
+    </tr>
+    <tr>
+      <td>bold_explorer-lr-2e-4</td>
+      <td>0.00020</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.050</td>
+      <td>0.999</td>
+      <td>200,704</td>
+      <td>0.56</td>
+      <td>3.8505</td>
+      <td>-1.8826</td>
+      <td>0.004747</td>
+    </tr>
+    <tr>
+      <td>steady_finisher-200K-b512</td>
+      <td>0.00010</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.005</td>
+      <td>0.990</td>
+      <td>204,800</td>
+      <td>-0.51</td>
+      <td>6.3261</td>
+      <td>-1.9537</td>
+      <td>0.007007</td>
+    </tr>
+    <tr>
+      <td>bold_refined-v2-500K</td>
+      <td>0.00003</td>
+      <td>512</td>
+      <td>2048</td>
+      <td>0.001</td>
+      <td>0.995</td>
+      <td>507,904</td>
+      <td>-0.80</td>
+      <td>8.4302</td>
+      <td>-2.0337</td>
+      <td>0.001592</td>
+    </tr>
+    <tr>
+      <td>steady_finisher-200K</td>
+      <td>0.00010</td>
+      <td>1024</td>
+      <td>2048</td>
+      <td>0.005</td>
+      <td>0.990</td>
+      <td>204,800</td>
+      <td>-1.07</td>
+      <td>7.4764</td>
+      <td>-1.7862</td>
+      <td>0.004301</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+    </body>
+    </html>
+    
