@@ -8,7 +8,7 @@ from stable_baselines3 import PPO
 from envs.catch_env import CatchMeEnv
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 DEFAULT_MODEL_PATH = ROOT / "models" / "catchme_ppo.zip"
 
 
@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     if not args.model_path.exists():
-        raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m catchme.train")
+        raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m train")
 
     model = PPO.load(args.model_path)
     env = CatchMeEnv(render_mode="human" if args.render else None)

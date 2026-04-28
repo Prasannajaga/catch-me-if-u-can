@@ -1,0 +1,22 @@
+{
+    "run_name": "heavy-explore",
+    "timesteps": 400000,
+    "n_envs": 8,
+    "seed": 7,
+    "n_steps": 1024,
+    "batch_size": 512,
+    "learning_rate": 0.00025,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.02,
+    "check_env": false,
+    "render_test": false,
+    "model_path": "/home/prasanna/coding/catch-me-if-you-can/models/catchme_ppo.zip",
+    "log_dir": "runs/ppo_catchme_explore",
+    "eval_freq": 10000,
+    "eval_episodes": 10,
+    "checkpoint_freq": 50000,
+    "no_eval": false,
+    "no_checkpoint": false
+}

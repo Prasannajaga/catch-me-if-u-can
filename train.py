@@ -1,23 +1,32 @@
 import argparse
-from pathlib import Path
 import json
+import shutil
+from pathlib import Path
 
 from stable_baselines3 import PPO
 import pandas as pd
+import matplotlib.pyplot as plt
+from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
-import matplotlib.pyplot as plt
 from envs.catch_env import CatchMeEnv
 
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_LOG_DIR = ROOT / "runs" / "ppo_catchme"
+DEFAULT_MODEL_PATH = ROOT / "models" / "catchme_ppo.zip"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train Catch Me If You Can RL agent")
-    parser.add_argument("--run-name", type=str, default="catchme_ppo_run", help="Name for this training run")
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=None,
+        help="Legacy run name support. If set and --log-dir is not set, logs are saved under runs/<run-name>.",
+    )
     parser.add_argument("--timesteps", type=int, default=200_000)
     parser.add_argument("--n-envs", type=int, default=4)
     parser.add_argument("--seed", type=int, default=7)
@@ -30,20 +39,42 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ent-coef", type=float, default=0.01)
     parser.add_argument("--check-env", action="store_true", help="Run Gymnasium environment checker before training")
     parser.add_argument("--render-test", action="store_true", help="Render one random-policy episode before training")
+    parser.add_argument("--model-path", type=Path, default=DEFAULT_MODEL_PATH, help="Path to save the final model zip")
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help="Directory for training logs/monitor files/eval/checkpoints (default: runs/ppo_catchme)",
+    )
+    parser.add_argument("--eval-freq", type=int, default=10_000, help="Evaluation frequency in env timesteps")
+    parser.add_argument("--eval-episodes", type=int, default=10, help="Episodes per evaluation run")
+    parser.add_argument("--checkpoint-freq", type=int, default=25_000, help="Checkpoint frequency in env timesteps")
+    parser.add_argument("--no-eval", action="store_true", help="Disable periodic evaluation callback")
+    parser.add_argument("--no-checkpoint", action="store_true", help="Disable periodic checkpoint callback")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    
-    run_dir = ROOT / "runs" / args.run_name
+
+    if args.log_dir is not None:
+        run_dir = args.log_dir
+    elif args.run_name is not None:
+        run_dir = ROOT / "runs" / args.run_name
+    else:
+        run_dir = DEFAULT_LOG_DIR
+
+    eval_dir = run_dir / "eval"
+    checkpoint_dir = run_dir / "checkpoints"
+
     run_dir.mkdir(parents=True, exist_ok=True)
+    eval_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    args.model_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Save configuration
     with open(run_dir / "config.json", "w") as f:
-        json.dump(vars(args), f, indent=4)
-
-    model_path = run_dir / "catchme_ppo.zip"
+        json.dump(vars(args), f, indent=4, default=str)
 
     if args.check_env:
         print("Checking environment...")
@@ -64,6 +95,8 @@ def main() -> None:
         format_strings=["stdout", "csv"],
     )
 
+    eval_env = Monitor(CatchMeEnv(max_steps=600))
+
     model = PPO(
         policy="MlpPolicy",
         env=env,
@@ -80,17 +113,62 @@ def main() -> None:
 
     model.set_logger(logger)
 
-    model.learn(total_timesteps=args.timesteps, progress_bar=True)
-    model.save(model_path)
-    env.close()
+    callbacks = []
+    if not args.no_eval:
+        callbacks.append(
+            EvalCallback(
+                eval_env=eval_env,
+                best_model_save_path=str(eval_dir),
+                log_path=str(eval_dir),
+                eval_freq=max(args.eval_freq // args.n_envs, 1),
+                n_eval_episodes=args.eval_episodes,
+                deterministic=True,
+                render=False,
+            )
+        )
+    if not args.no_checkpoint:
+        callbacks.append(
+            CheckpointCallback(
+                save_freq=max(args.checkpoint_freq // args.n_envs, 1),
+                save_path=str(checkpoint_dir),
+                name_prefix="catchme_ppo",
+            )
+        )
 
-    print(f"Saved model to: {model_path}")
+    callback = CallbackList(callbacks) if callbacks else None
+
+    model.learn(total_timesteps=args.timesteps, callback=callback, progress_bar=True)
+    model.save(args.model_path)
+    final_steps = int(model.num_timesteps)
+
+    # Keep the existing final model path, and also write a step-tagged copy.
+    final_step_model_path = args.model_path.with_name(f"{args.model_path.stem}_{final_steps}_steps.zip")
+    shutil.copy2(args.model_path, final_step_model_path)
+
+    # Keep EvalCallback's best_model.zip, and also create a step-tagged snapshot copy.
+    best_model_path = eval_dir / "best_model.zip"
+    best_step_model_path = eval_dir / f"best_model_{final_steps}_steps.zip"
+    if not args.no_eval and best_model_path.exists():
+        shutil.copy2(best_model_path, best_step_model_path)
+
+    env.close()
+    eval_env.close()
+
+    print(f"Saved final model to: {args.model_path}")
+    print(f"Saved step-tagged final model to: {final_step_model_path}")
+    if not args.no_eval:
+        print(f"Best eval model path: {best_model_path}")
+        if best_model_path.exists():
+            print(f"Saved step-tagged best model to: {best_step_model_path}")
+    if not args.no_checkpoint:
+        print(f"Checkpoint directory: {checkpoint_dir}")
 
     plot_training_curves(run_dir)
 
 
 def read_monitor_csv(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, skiprows=1)
+
 
 def plot_training_curves(run_dir: Path) -> None: 
     monitor_files = list(run_dir.glob("*.monitor.csv"))
@@ -160,9 +238,6 @@ def plot_episode_lengths(monitor_path: Path, run_dir: Path) -> None:
 
     print(f"Saved episode length curve to: {output_path}")
 
-
-import matplotlib.ticker as ticker
-
 def plot_losses(progress_path: Path, run_dir: Path) -> None:
     df = pd.read_csv(progress_path)
 
@@ -183,24 +258,41 @@ def plot_losses(progress_path: Path, run_dir: Path) -> None:
         return
 
     x_column = "time/total_timesteps" if "time/total_timesteps" in df.columns else None
+    if x_column:
+        df[x_column] = pd.to_numeric(df[x_column], errors="coerce")
+    else:
+        df["_log_step"] = pd.RangeIndex(start=0, stop=len(df), step=1)
+        x_column = "_log_step"
+
+    # Keep only numeric values and drop columns that are entirely NaN.
+    plottable_columns: list[str] = []
+    for col in available_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+        if df[col].notna().any():
+            plottable_columns.append(col)
+
+    if not plottable_columns:
+        print("Loss columns exist but contain no numeric data yet.")
+        return
 
     plt.figure(figsize=(10, 5))
-    ax = plt.gca()
+    plotted_any = False
 
-    for col in available_columns:
-        if x_column:
-            plt.plot(df[x_column], df[col], label=col)
-        else:
-            plt.plot(df.index, df[col], label=col)
+    for col in plottable_columns:
+        mask = df[x_column].notna() & df[col].notna()
+        if mask.any():
+            plt.plot(df.loc[mask, x_column], df.loc[mask, col], label=col)
+            plotted_any = True
 
-    # Make the y-axis ticks follow a gap of 5 (0, 5, 10, 15...)
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(5))
+    if not plotted_any:
+        print("No valid points to plot for loss curves.")
+        return
 
-    plt.xlabel("Timesteps" if x_column else "Log step")
+    plt.xlabel("Timesteps" if x_column == "time/total_timesteps" else "Log step")
     plt.ylabel("Loss / metric value")
     plt.title("PPO Training Loss Curves")
     plt.legend()
-    plt.grid(True, which='both', linestyle='--', alpha=0.5)
+    plt.grid(True, linestyle='--', alpha=0.5)
     plt.tight_layout()
 
     output_path = run_dir / "loss_curves.png"

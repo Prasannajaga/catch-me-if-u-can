@@ -26,7 +26,7 @@
             }
             .container {
                 width: 100%;
-                max-width: 1200px;
+                max-width: 1400px;
             }
             h1 {
                 font-weight: 600;
@@ -54,23 +54,18 @@
                 text-transform: uppercase;
                 font-size: 0.8rem;
                 letter-spacing: 0.05em;
+                white-space: nowrap;
             }
             td {
-                padding: 16px;
+                padding: 14px 16px;
                 border-bottom: 1px solid var(--border);
-                font-size: 0.95rem;
+                font-size: 0.92rem;
             }
             tr:last-child td {
                 border-bottom: none;
             }
             tr:hover td {
                 background-color: rgba(56, 189, 248, 0.05);
-            }
-            .badge {
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.8rem;
-                background: var(--border);
             }
         </style>
     </head>
@@ -81,11 +76,19 @@
   <thead>
     <tr style="text-align: right;">
       <th>Run Name</th>
+      <th>Run Dir</th>
       <th>Learning Rate</th>
       <th>Batch Size</th>
       <th>Steps</th>
       <th>Ent Coef</th>
       <th>Gamma</th>
+      <th>N Envs</th>
+      <th>Final Model</th>
+      <th>Best Model</th>
+      <th>Checkpoint Count</th>
+      <th>Best Eval Mean Reward</th>
+      <th>Latest Eval Mean Reward</th>
+      <th>Eval Count</th>
       <th>Total Timesteps</th>
       <th>Final Mean Reward</th>
       <th>Final Value Loss</th>
@@ -95,64 +98,83 @@
   </thead>
   <tbody>
     <tr>
-      <td>bold_refined-v2-600K</td>
-      <td>0.00050</td>
+      <td>heavy-explore</td>
+      <td>ppo_catchme_explore</td>
+      <td>0.00025</td>
       <td>512</td>
-      <td>2048</td>
-      <td>0.001</td>
-      <td>0.995</td>
-      <td>606,208</td>
-      <td>43.90</td>
-      <td>13.2411</td>
-      <td>-0.6219</td>
-      <td>0.004766</td>
+      <td>1024</td>
+      <td>0.020</td>
+      <td>0.990</td>
+      <td>8</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>8</td>
+      <td>82.84</td>
+      <td>46.18</td>
+      <td>40</td>
+      <td>401,408</td>
+      <td>2.24</td>
+      <td>3.2664</td>
+      <td>-1.5111</td>
+      <td>0.003558</td>
     </tr>
     <tr>
-      <td>quick_learner</td>
-      <td>0.00070</td>
-      <td>128</td>
+      <td>ppo_catchme_stable</td>
+      <td>ppo_catchme_stable</td>
+      <td>0.00010</td>
       <td>512</td>
+      <td>2048</td>
+      <td>0.005</td>
+      <td>0.995</td>
+      <td>4</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>7</td>
+      <td>70.09</td>
+      <td>-0.56</td>
+      <td>18</td>
+      <td>188,416</td>
+      <td>-1.34</td>
+      <td>7.4909</td>
+      <td>-2.0638</td>
+      <td>0.003010</td>
+    </tr>
+    <tr>
+      <td>new-experiement</td>
+      <td>new-experiement</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
       <td>0.010</td>
       <td>0.990</td>
+      <td>4</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>8</td>
+      <td>26.96</td>
+      <td>24.29</td>
+      <td>20</td>
       <td>200,704</td>
-      <td>24.66</td>
-      <td>6.7688</td>
-      <td>-0.3649</td>
-      <td>0.004169</td>
+      <td>1.78</td>
+      <td>2.9056</td>
+      <td>-1.4661</td>
+      <td>0.004585</td>
     </tr>
     <tr>
-      <td>bold_refined-v2-400K</td>
-      <td>0.00030</td>
-      <td>512</td>
-      <td>2048</td>
-      <td>0.001</td>
-      <td>0.995</td>
-      <td>401,408</td>
-      <td>5.40</td>
-      <td>2.2697</td>
-      <td>-1.2388</td>
-      <td>0.004833</td>
-    </tr>
-    <tr>
-      <td>bold_refined-v1</td>
-      <td>0.00030</td>
-      <td>512</td>
-      <td>2048</td>
-      <td>0.001</td>
-      <td>0.999</td>
-      <td>303,104</td>
-      <td>4.06</td>
-      <td>2.7217</td>
-      <td>-1.3056</td>
-      <td>0.005371</td>
-    </tr>
-    <tr>
+      <td>200K-experiment</td>
       <td>200K-experiment</td>
       <td>0.00030</td>
       <td>256</td>
       <td>1024</td>
       <td>0.010</td>
       <td>0.990</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
       <td>200,704</td>
       <td>3.69</td>
       <td>2.8370</td>
@@ -160,64 +182,20 @@
       <td>0.005377</td>
     </tr>
     <tr>
-      <td>bold_refined-v2</td>
-      <td>0.00030</td>
-      <td>512</td>
-      <td>2048</td>
-      <td>0.001</td>
-      <td>0.995</td>
-      <td>303,104</td>
-      <td>3.64</td>
-      <td>2.2043</td>
-      <td>-1.4114</td>
-      <td>0.004946</td>
-    </tr>
-    <tr>
-      <td>bold_explorer-300k</td>
-      <td>0.00030</td>
-      <td>256</td>
-      <td>1024</td>
-      <td>0.050</td>
-      <td>0.999</td>
-      <td>303,104</td>
-      <td>3.22</td>
-      <td>2.9501</td>
-      <td>-1.8093</td>
-      <td>0.005624</td>
-    </tr>
-    <tr>
-      <td>bold_explorer-seed-142</td>
-      <td>0.00030</td>
-      <td>256</td>
-      <td>1024</td>
-      <td>0.050</td>
-      <td>0.999</td>
-      <td>200,704</td>
-      <td>1.59</td>
-      <td>4.3291</td>
-      <td>-1.8534</td>
-      <td>0.006713</td>
-    </tr>
-    <tr>
-      <td>bold_refined-v2-b1024</td>
-      <td>0.00030</td>
-      <td>1024</td>
-      <td>2048</td>
-      <td>0.001</td>
-      <td>0.995</td>
-      <td>303,104</td>
-      <td>1.49</td>
-      <td>2.9164</td>
-      <td>-1.5803</td>
-      <td>0.004918</td>
-    </tr>
-    <tr>
+      <td>bold_explorer</td>
       <td>bold_explorer</td>
       <td>0.00030</td>
       <td>256</td>
       <td>1024</td>
       <td>0.050</td>
       <td>0.999</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
       <td>200,704</td>
       <td>1.43</td>
       <td>3.3152</td>
@@ -226,11 +204,19 @@
     </tr>
     <tr>
       <td>bold_explorer-lr-2e-4</td>
+      <td>bold_explorer-lr-2e-4</td>
       <td>0.00020</td>
       <td>256</td>
       <td>1024</td>
       <td>0.050</td>
       <td>0.999</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
       <td>200,704</td>
       <td>0.56</td>
       <td>3.8505</td>
@@ -238,12 +224,83 @@
       <td>0.004747</td>
     </tr>
     <tr>
+      <td>bold_explorer-seed-142</td>
+      <td>bold_explorer-seed-142</td>
+      <td>0.00030</td>
+      <td>256</td>
+      <td>1024</td>
+      <td>0.050</td>
+      <td>0.999</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
+      <td>200,704</td>
+      <td>1.59</td>
+      <td>4.3291</td>
+      <td>-1.8534</td>
+      <td>0.006713</td>
+    </tr>
+    <tr>
+      <td>quick_learner</td>
+      <td>quick_learner</td>
+      <td>0.00070</td>
+      <td>128</td>
+      <td>512</td>
+      <td>0.010</td>
+      <td>0.990</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
+      <td>200,704</td>
+      <td>24.66</td>
+      <td>6.7688</td>
+      <td>-0.3649</td>
+      <td>0.004169</td>
+    </tr>
+    <tr>
+      <td>steady_finisher-200K</td>
+      <td>steady_finisher-200K</td>
+      <td>0.00010</td>
+      <td>1024</td>
+      <td>2048</td>
+      <td>0.005</td>
+      <td>0.990</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
+      <td>204,800</td>
+      <td>-1.07</td>
+      <td>7.4764</td>
+      <td>-1.7862</td>
+      <td>0.004301</td>
+    </tr>
+    <tr>
+      <td>steady_finisher-200K-b512</td>
       <td>steady_finisher-200K-b512</td>
       <td>0.00010</td>
       <td>512</td>
       <td>2048</td>
       <td>0.005</td>
       <td>0.990</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
       <td>204,800</td>
       <td>-0.51</td>
       <td>6.3261</td>
@@ -251,30 +308,25 @@
       <td>0.007007</td>
     </tr>
     <tr>
-      <td>bold_refined-v2-500K</td>
-      <td>0.00003</td>
+      <td>ultimate_run-1M</td>
+      <td>ultimate_run-1M</td>
+      <td>0.00050</td>
       <td>512</td>
-      <td>2048</td>
+      <td>4096</td>
       <td>0.001</td>
       <td>0.995</td>
-      <td>507,904</td>
-      <td>-0.80</td>
-      <td>8.4302</td>
-      <td>-2.0337</td>
-      <td>0.001592</td>
-    </tr>
-    <tr>
-      <td>steady_finisher-200K</td>
-      <td>0.00010</td>
-      <td>1024</td>
-      <td>2048</td>
-      <td>0.005</td>
-      <td>0.990</td>
-      <td>204,800</td>
-      <td>-1.07</td>
-      <td>7.4764</td>
-      <td>-1.7862</td>
-      <td>0.004301</td>
+      <td>4</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>0</td>
+      <td>N/A</td>
+      <td>N/A</td>
+      <td>0</td>
+      <td>1,015,808</td>
+      <td>121.71</td>
+      <td>20.8737</td>
+      <td>-0.5118</td>
+      <td>0.002986</td>
     </tr>
   </tbody>
 </table>

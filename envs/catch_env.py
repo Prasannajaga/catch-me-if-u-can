@@ -111,6 +111,9 @@ class CatchMeEnv(gym.Env):
         )
 
         distance = self._distance(self.character.position, self.player_position)
+
+        # if the distance is less than catch radius then it means caught 
+        # we terminate once it caught 
         caught = distance <= self.catch_radius
         terminated = bool(caught)
         truncated = bool(self.step_count >= self.max_steps)
@@ -198,7 +201,7 @@ class CatchMeEnv(gym.Env):
         # Main goal: stay away from the player.
         distance_reward = 1.5 * distance
 
-        # Encourage increasing the distance, not only sitting far away.
+        # here we reward bot to move away from the player, move extra miles away 
         escape_reward = 4.0 * (distance - previous_distance)
 
         # Small survival bonus.
@@ -206,10 +209,16 @@ class CatchMeEnv(gym.Env):
 
         # Avoid degenerate policy: hiding at borders/corners.
         x, y = self.character.position
+
+        # here if bot trying to reach the edge and stayes around there 
+        # we pubish to little here so it avoid hitting the wall and get back to it 
         edge_distance = min(x, 1.0 - x, y, 1.0 - y)
         edge_margin = 0.08
         edge_penalty = 2.5 * max(0.0, edge_margin - edge_distance) / edge_margin
 
+        # if the character tries to go outside of the screen 
+        # we punish it here 
         wall_penalty = 0.2 if hit_wall else 0.0
 
+        # finaly we calculate all the reward to the bot for fairness & consistency 
         return distance_reward + escape_reward + survival_reward - edge_penalty - wall_penalty
