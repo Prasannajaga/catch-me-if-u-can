@@ -14,4 +14,4 @@ python -m play_live
 
 We built a custom environment, trained a PPO agent, and iterated through short training/evaluation cycles while checking live behavior.
 
-For detailed notes and progress, see [progress.md](progress.md).
+For detailed notes and progress, see [PROGRESS.md](progress.md).
