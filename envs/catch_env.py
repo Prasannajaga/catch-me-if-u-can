@@ -124,6 +124,9 @@ class CatchMeEnv(gym.Env):
             caught=caught,
             hit_wall=hit_wall,
         )
+        if truncated and not caught:
+            # Make full-episode survival materially better than "almost survived".
+            reward += 25.0
 
         obs = self._get_obs()
         info = self._get_info()
@@ -196,7 +199,8 @@ class CatchMeEnv(gym.Env):
         hit_wall: bool,
     ) -> float:
         if caught:
-            return -10.0
+            # Strong terminal signal: getting caught should dominate step-wise shaping.
+            return -120.0
 
         # Main goal: stay away from the player.
         distance_reward = 1.5 * distance
@@ -205,7 +209,7 @@ class CatchMeEnv(gym.Env):
         escape_reward = 4.0 * (distance - previous_distance)
 
         # Small survival bonus.
-        survival_reward = 0.03
+        survival_reward = 0.02
 
         # Avoid degenerate policy: hiding at borders/corners.
         x, y = self.character.position
@@ -216,9 +220,11 @@ class CatchMeEnv(gym.Env):
         edge_margin = 0.08
         edge_penalty = 2.5 * max(0.0, edge_margin - edge_distance) / edge_margin
 
-        # if the character tries to go outside of the screen 
-        # we punish it here 
+        # If the character tries to go outside the screen.
         wall_penalty = 0.2 if hit_wall else 0.0
 
-        # finaly we calculate all the reward to the bot for fairness & consistency 
-        return distance_reward + escape_reward + survival_reward - edge_penalty - wall_penalty
+        # Extra penalty when the chaser is very close; teaches panic-avoid behavior.
+        danger_zone = 0.18
+        danger_penalty = 1.8 * max(0.0, danger_zone - distance) / danger_zone
+
+        return distance_reward + escape_reward + survival_reward - edge_penalty - wall_penalty - danger_penalty

@@ -130,3 +130,12 @@ We resumed training from `runs/ultimate_run-1M/catchme_ppo.zip` (our previous be
 - Survival rate: 74.67%
 
 Another solid improvement.
+
+### Final improvement 
+
+### ultimate_run_1m_resume_v3_95push 
+episodes:       300
+mean_reward:    189.08
+mean_steps:     550.92
+catch_rate:     8.67%
+survival_rate:  91.33%

@@ -5,7 +5,7 @@ A small reinforcement learning project for training and evaluating an agent in a
 ## Quick Start
 
 ```bash
-python -m train --timesteps 50000 --run-name first-experiment --check-env
+python -m train --timesteps 50000 --run-name first-experiment --check-**env**
 python -m eval --episodes 5 --render
 python -m play_live
 ```
