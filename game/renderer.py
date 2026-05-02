@@ -33,6 +33,7 @@ class PygameRenderer:
         player_position: np.ndarray,
         catch_radius: float,
         info: dict,
+        observation: np.ndarray,
         return_rgb_array: bool = False,
     ) -> np.ndarray | None:
         pygame = self.pygame
@@ -51,9 +52,16 @@ class PygameRenderer:
 
         pygame.draw.line(self.screen, (90, 90, 100), player_xy, char_xy, width=1)
 
-        text = f"step={info['step']} distance={info['distance']:.3f} caught={info['caught']}"
-        text_surface = self.font.render(text, True, (230, 230, 235))
-        self.screen.blit(text_surface, (16, 16))
+        hud_lines = [
+            f"step={info['step']} caught={info['caught']}",
+            f"character_x={observation[0]:.3f} character_y={observation[1]:.3f}",
+            f"player_x={observation[2]:.3f} player_y={observation[3]:.3f}",
+            f"delta_x={observation[4]:.3f} delta_y={observation[5]:.3f}",
+            f"distance_to_player={observation[6]:.3f}",
+            f"character_vx={observation[7]:.3f} character_vy={observation[8]:.3f}",
+            f"player_vx={observation[9]:.3f} player_vy={observation[10]:.3f}",
+        ]
+        self._draw_hud_lines(hud_lines, x=16, y=16)
 
         pygame.display.flip()
         self.clock.tick(self.fps)
@@ -76,6 +84,12 @@ class PygameRenderer:
             pygame.draw.line(self.screen, (28, 28, 36), (x, 0), (x, self.height))
         for y in range(0, self.height, 50):
             pygame.draw.line(self.screen, (28, 28, 36), (0, y), (self.width, y))
+
+    def _draw_hud_lines(self, lines: list[str], *, x: int, y: int, line_gap: int = 24) -> None:
+        color = (230, 230, 235)
+        for idx, text in enumerate(lines):
+            text_surface = self.font.render(text, True, color)
+            self.screen.blit(text_surface, (x, y + idx * line_gap))
 
     def _handle_events(self) -> None:
         pygame = self.pygame

@@ -24,37 +24,38 @@ def _safe_last_int(series: pd.Series):
     return f"{int(numeric.iloc[-1]):,}"
 
 
-def _load_eval_metrics(eval_npz_path: Path) -> dict[str, object]:
-    if not eval_npz_path.exists():
-        return {
-            "Best Eval Mean Reward": "N/A",
-            "Latest Eval Mean Reward": "N/A",
-            "Eval Count": 0,
-        }
+def _load_manual_eval_metrics(summary_csv_path: Path) -> dict[str, object]:
+    default = {
+        "Eval Count": 0,
+        "Eval Episodes": "N/A",
+        "Eval Mean Reward": "N/A",
+        "Catch Rate": "N/A",
+        "Survival Rate": "N/A",
+    }
+    if not summary_csv_path.exists():
+        return default
 
     try:
-        data = np.load(eval_npz_path)
-        results = data.get("results")
-        if results is None or results.size == 0:
-            return {
-                "Best Eval Mean Reward": "N/A",
-                "Latest Eval Mean Reward": "N/A",
-                "Eval Count": 0,
-            }
+        df = pd.read_csv(summary_csv_path)
+        if df.empty:
+            return default
 
-        eval_means = np.mean(results, axis=1)
+        latest = df.iloc[-1]
+        catch_rate = pd.to_numeric(pd.Series([latest.get("catch_rate")]), errors="coerce").iloc[0]
+        survival_rate = pd.to_numeric(pd.Series([latest.get("survival_rate")]), errors="coerce").iloc[0]
+        mean_reward = pd.to_numeric(pd.Series([latest.get("mean_reward")]), errors="coerce").iloc[0]
+        episodes = pd.to_numeric(pd.Series([latest.get("episodes")]), errors="coerce").iloc[0]
+
         return {
-            "Best Eval Mean Reward": round(float(np.max(eval_means)), 2),
-            "Latest Eval Mean Reward": round(float(eval_means[-1]), 2),
-            "Eval Count": int(len(eval_means)),
+            "Eval Count": int(len(df)),
+            "Eval Episodes": int(episodes) if pd.notna(episodes) else "N/A",
+            "Eval Mean Reward": round(float(mean_reward), 2) if pd.notna(mean_reward) else "N/A",
+            "Catch Rate": f"{float(catch_rate):.2%}" if pd.notna(catch_rate) else "N/A",
+            "Survival Rate": f"{float(survival_rate):.2%}" if pd.notna(survival_rate) else "N/A",
         }
     except Exception as e:
-        print(f"Error reading {eval_npz_path}: {e}")
-        return {
-            "Best Eval Mean Reward": "N/A",
-            "Latest Eval Mean Reward": "N/A",
-            "Eval Count": 0,
-        }
+        print(f"Error reading {summary_csv_path}: {e}")
+        return default
 
 
 def collect_run_data(runs_root: Path):
@@ -71,15 +72,13 @@ def collect_run_data(runs_root: Path):
         config_path = run_dir / "config.json"
         progress_path = run_dir / "progress.csv"
         eval_dir = run_dir / "eval"
-        eval_npz_path = eval_dir / "evaluations.npz"
+        manual_eval_summary_path = eval_dir / "manual_eval_history.csv"
         best_model_path = eval_dir / "best_model.zip"
         checkpoint_dir = run_dir / "checkpoints"
-
-        if not config_path.exists():
-            continue
-
-        with open(config_path, "r") as f:
-            config = json.load(f)
+        config: dict[str, object] = {}
+        if config_path.exists():
+            with open(config_path, "r") as f:
+                config = json.load(f)
 
         run_name = config.get("run_name")
         if run_name is None:
@@ -101,7 +100,7 @@ def collect_run_data(runs_root: Path):
             "Checkpoint Count": len(list(checkpoint_dir.glob("*.zip"))) if checkpoint_dir.exists() else 0,
         }
 
-        metrics.update(_load_eval_metrics(eval_npz_path))
+        metrics.update(_load_manual_eval_metrics(manual_eval_summary_path))
 
         if progress_path.exists():
             try:
@@ -143,14 +142,35 @@ def generate_html(data, output_file: Path):
 
     df = pd.DataFrame(data)
 
-    if "Best Eval Mean Reward" in df.columns:
-        sort_col = pd.to_numeric(df["Best Eval Mean Reward"], errors="coerce")
-        if sort_col.notna().any():
-            df = df.assign(_sort_col=sort_col).sort_values(by="_sort_col", ascending=False).drop(columns=["_sort_col"])
-    elif "Final Mean Reward" in df.columns:
-        sort_col = pd.to_numeric(df["Final Mean Reward"], errors="coerce")
-        if sort_col.notna().any():
-            df = df.assign(_sort_col=sort_col).sort_values(by="_sort_col", ascending=False).drop(columns=["_sort_col"])
+    # Always sort best -> worst using latest manual eval mean reward.
+    eval_mean = pd.to_numeric(df.get("Eval Mean Reward"), errors="coerce")
+    if eval_mean.notna().any():
+        df = (
+            df.assign(_rank_score=eval_mean)
+            .sort_values(by="_rank_score", ascending=False, na_position="last")
+            .drop(columns=["_rank_score"])
+            .reset_index(drop=True)
+        )
+
+    df.insert(0, "Rank", np.arange(1, len(df) + 1))
+
+    # Keep dashboard focused on the most decision-useful metrics.
+    preferred_columns = [
+        "Rank",
+        "Run Name",
+        "Run Dir",
+        "Eval Mean Reward",
+        "Catch Rate",
+        "Survival Rate",
+        "Eval Episodes",
+        "Eval Count",
+        "Final Mean Reward",
+        "Total Timesteps",
+        "Final Value Loss",
+    ]
+    existing_columns = [col for col in preferred_columns if col in df.columns]
+    if existing_columns:
+        df = df[existing_columns]
 
     html_table = df.to_html(classes="compare-table", index=False, border=0)
 
@@ -227,7 +247,7 @@ def generate_html(data, output_file: Path):
     </head>
     <body>
         <div class="container">
-            <h1>Training Comparison</h1>
+            <h1>Run Comparison (Best to Worst)</h1>
             {html_table}
         </div>
     </body>

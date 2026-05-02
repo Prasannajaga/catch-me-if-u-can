@@ -150,6 +150,7 @@ class CatchMeEnv(gym.Env):
             player_position=self.player_position,
             catch_radius=self.catch_radius,
             info=self._get_info(),
+            observation=self._get_obs(),
             return_rgb_array=self.render_mode == "rgb_array",
         )
 

@@ -7,21 +7,29 @@ from pathlib import Path
 from uuid import uuid4
 
 import numpy as np
-from stable_baselines3 import PPO 
+from stable_baselines3 import PPO
+
 from envs.catch_env import CatchMeEnv
+from envs.continuous_action_wrapper import ContinuousActionWrapper
 
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_MODEL_PATH = ROOT / "models" / "catchme_ppo.zip"
+DEFAULT_MODEL_PATH = ROOT / "models" / "catchme_continuous_ppo.zip"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Evaluate trained Catch Me policy")
+    parser = argparse.ArgumentParser(description="Evaluate continuous-action Catch Me policy")
     parser.add_argument("--model-path", type=Path, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--run-dir", type=Path, default=None, help="Run directory under runs/ to append manual eval history")
     parser.add_argument("--episodes", type=int, default=20)
+    parser.add_argument("--max-steps", type=int, default=600)
     parser.add_argument("--render", action="store_true")
     return parser.parse_args()
+
+
+def make_continuous_env(*, max_steps: int, render_mode: str | None = None) -> ContinuousActionWrapper:
+    base = CatchMeEnv(max_steps=max_steps, render_mode=render_mode)
+    return ContinuousActionWrapper(base)
 
 
 def _infer_run_dir(model_path: Path) -> Path | None:
@@ -121,10 +129,10 @@ def _append_manual_eval_history(
 def main() -> None:
     args = parse_args()
     if not args.model_path.exists():
-        raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m train")
+        raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m train_continuous")
 
     model = PPO.load(args.model_path)
-    env = CatchMeEnv(render_mode="human" if args.render else None)
+    env = make_continuous_env(max_steps=args.max_steps, render_mode="human" if args.render else None)
 
     rewards: list[float] = []
     lengths: list[int] = []
@@ -140,7 +148,7 @@ def main() -> None:
 
         while not done:
             action, _state = model.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, info = env.step(int(action))
+            obs, reward, terminated, truncated, info = env.step(action)
             total_reward += float(reward)
             steps += 1
             done = terminated or truncated
