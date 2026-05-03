@@ -18,4 +18,4 @@ For detailed notes and progress, see [PROGRESS.md](PROGRESS.md).
 
 ## Demo
 
-![Output demo](output.gif)
+![Output demo](output1.gif)
