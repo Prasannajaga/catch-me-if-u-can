@@ -22,4 +22,4 @@ For detailed notes and progress, see [PROGRESS.md](PROGRESS.md).
 
 ## Blog
 
-I wrote a blog about this ![here](https://x.com/jaga_prasanna/status/2050837670063145238)
+[I wrote a blog about this!](https://x.com/jaga_prasanna/status/2050837670063145238)
