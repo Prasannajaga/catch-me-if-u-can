@@ -19,3 +19,7 @@ For detailed notes and progress, see [PROGRESS.md](PROGRESS.md).
 ## Demo
 
 ![Output demo](output1.gif)
+
+## Blog
+
+I wrote a blog about this ![here](https://x.com/jaga_prasanna/status/2050837670063145238)
