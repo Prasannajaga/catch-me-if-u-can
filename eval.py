@@ -9,6 +9,7 @@ from uuid import uuid4
 import numpy as np
 from stable_baselines3 import PPO 
 from envs.catch_env import CatchMeEnv
+from envs.continuous_action_wrapper import ContinuousActionWrapper
 
 
 ROOT = Path(__file__).resolve().parent
@@ -20,8 +21,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-path", type=Path, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--run-dir", type=Path, default=None, help="Run directory under runs/ to append manual eval history")
     parser.add_argument("--episodes", type=int, default=20)
+    parser.add_argument("--max-steps", type=int, default=600)
+    parser.add_argument(
+        "--continuous-run",
+        action="store_true",
+        help="Evaluate model with continuous [dx, dy] action wrapper instead of discrete actions.",
+    )
     parser.add_argument("--render", action="store_true")
     return parser.parse_args()
+
+
+def make_eval_env(*, max_steps: int, render: bool, continuous_run: bool):
+    base = CatchMeEnv(max_steps=max_steps, render_mode="human" if render else None)
+    if continuous_run:
+        return ContinuousActionWrapper(base)
+    return base
 
 
 def _infer_run_dir(model_path: Path) -> Path | None:
@@ -124,7 +138,7 @@ def main() -> None:
         raise FileNotFoundError(f"Model not found: {args.model_path}. Train first with python -m train")
 
     model = PPO.load(args.model_path)
-    env = CatchMeEnv(render_mode="human" if args.render else None)
+    env = make_eval_env(max_steps=args.max_steps, render=args.render, continuous_run=args.continuous_run)
 
     rewards: list[float] = []
     lengths: list[int] = []
@@ -140,7 +154,10 @@ def main() -> None:
 
         while not done:
             action, _state = model.predict(obs, deterministic=True)
-            obs, reward, terminated, truncated, info = env.step(int(action))
+            if args.continuous_run:
+                obs, reward, terminated, truncated, info = env.step(action)
+            else:
+                obs, reward, terminated, truncated, info = env.step(int(action))
             total_reward += float(reward)
             steps += 1
             done = terminated or truncated

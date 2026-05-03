@@ -141,3 +141,50 @@ catch_rate:     8.67%
 survival_rate:  91.33%
 
 
+
+## Config Comparison (`200K-experiment` → `ultimate_run-1M`)
+
+### 1) Outcome Metrics
+
+| Metric | 200K-experiment | ultimate_run-1M | Change |
+|---|---:|---:|---:|
+| Eval Mean Reward | -114.66 | 91.02 | **+205.68** |
+| Survival Rate | 0.0% | 68.6% | **+68.6 pp** |
+| Catch Rate | 100.0% | 31.4% | **-68.6 pp** |
+| Eval Mean Steps | 40.24 | 423.19 | **+382.95** |
+| Final Train Mean Reward | 3.69 | 121.71 | **+118.03** |
+| Final Value Loss | 2.84 | 20.87 | +18.03 (higher, but performance still much better) |
+| Total Timesteps (actual) | 200,704 | 1,015,808 | **+815,104 (~5.06x)** |
+
+---
+
+### 2) Arg Changes and Observed Impact
+
+| Arg | 200K-experiment | ultimate_run-1M | Observed impact in this comparison |
+|---|---:|---:|---|
+| `timesteps` | 200000 | 1000000 | Biggest likely driver. Much longer training strongly aligns with major gains in reward/survival. |
+| `n_steps` | 1024 | 4096 | Larger rollout horizon may help longer-term credit assignment, but can reduce update frequency. |
+| `batch_size` | 256 | 512 | More stable gradient estimates; typically smoother updates. |
+| `learning_rate` | 3e-4 | 5e-4 | More aggressive updates; can speed learning or destabilize depending on setup. |
+| `gamma` | 0.99 | 0.995 | More future-focused objective; can help long survival behavior. |
+| `ent_coef` | 0.01 | 0.001 | Much less exploration noise late in training; helps policy exploit learned survival behavior. |
+| `check_env` | true | false | No direct performance effect (debug/check only). |
+| `render_test` | false | false | No change. |
+
+---
+
+### 3) Unchanged Args
+
+| Arg | Value |
+|---|---:|
+| `n_envs` | 4 |
+| `seed` | 7 |
+| `gae_lambda` | 0.95 |
+| `clip_range` | 0.2 |
+
+---
+
+### Important Note
+
+This is a **multi-parameter change**, so exact per-argument causality is not isolated.  
+The table above shows the most likely contribution based on RL behavior + observed outcomes.

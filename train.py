@@ -7,10 +7,12 @@ from stable_baselines3 import PPO
 import pandas as pd
 import matplotlib.pyplot as plt
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
+from stable_baselines3.common.buffers import DictRolloutBuffer, RolloutBuffer
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import FloatSchedule
 from envs.catch_env import CatchMeEnv
 
 
@@ -28,6 +30,7 @@ def parse_args() -> argparse.Namespace:
         help="Legacy run name support. If set and --log-dir is not set, logs are saved under runs/<run-name>.",
     )
     parser.add_argument("--timesteps", type=int, default=200_000)
+    parser.add_argument("--max-steps", type=int, default=600, help="Maximum steps per episode before truncation")
     parser.add_argument("--n-envs", type=int, default=4)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--n-steps", type=int, default=1024)
@@ -91,13 +94,13 @@ def main() -> None:
 
     if args.check_env:
         print("Checking environment...")
-        check_env(CatchMeEnv(), warn=True)
+        check_env(CatchMeEnv(max_steps=args.max_steps), warn=True)
 
     if args.render_test:
-        render_random_episode()
+        render_random_episode(max_steps=args.max_steps)
 
     env = make_vec_env(
-        lambda: CatchMeEnv(max_steps=600),
+        lambda: CatchMeEnv(max_steps=args.max_steps),
         n_envs=args.n_envs,
         seed=args.seed,
         monitor_dir=str(run_dir)
@@ -108,11 +111,41 @@ def main() -> None:
         format_strings=["stdout", "csv"],
     )
 
-    eval_env = Monitor(CatchMeEnv(max_steps=600))
+    eval_env = Monitor(CatchMeEnv(max_steps=args.max_steps))
 
     if args.resume_from is not None:
         print(f"Resuming from model: {args.resume_from}")
         model = PPO.load(args.resume_from, env=env)
+        # Apply CLI hyperparameter overrides when resuming.
+        # SB3 load restores hyperparams from checkpoint, so we must explicitly update them.
+        model.n_steps = args.n_steps
+        model.batch_size = args.batch_size
+        model.learning_rate = args.learning_rate
+        model.lr_schedule = FloatSchedule(args.learning_rate)
+        model.gamma = args.gamma
+        model.gae_lambda = args.gae_lambda
+        model.clip_range = FloatSchedule(args.clip_range)
+        model.ent_coef = args.ent_coef
+
+        # Rollout buffer depends on n_steps/gamma/gae_lambda, so rebuild it after overrides.
+        rollout_buffer_cls = DictRolloutBuffer if model.rollout_buffer_class is DictRolloutBuffer else RolloutBuffer
+        model.rollout_buffer = rollout_buffer_cls(
+            model.n_steps,
+            model.observation_space,  # type: ignore[arg-type]
+            model.action_space,
+            device=model.device,
+            gamma=model.gamma,
+            gae_lambda=model.gae_lambda,
+            n_envs=model.n_envs,
+            **model.rollout_buffer_kwargs,
+        )
+        model.set_random_seed(args.seed)
+        print(
+            "Applied resume overrides: "
+            f"n_steps={model.n_steps}, batch_size={model.batch_size}, "
+            f"learning_rate={args.learning_rate}, gamma={model.gamma}, "
+            f"gae_lambda={model.gae_lambda}, clip_range={args.clip_range}, ent_coef={model.ent_coef}"
+        )
     else:
         model = PPO(
             policy="MlpPolicy",
@@ -196,28 +229,47 @@ def read_monitor_csv(path: Path) -> pd.DataFrame:
 
 
 def plot_training_curves(run_dir: Path) -> None: 
-    monitor_files = list(run_dir.glob("*.monitor.csv"))
+    monitor_files = sorted(run_dir.glob("*.monitor.csv"))
     progress_path = run_dir / "progress.csv"
 
     if not monitor_files:
         print(f"No monitor files found in: {run_dir}")
     else:
-        plot_episode_rewards(monitor_files[0], run_dir)
-        plot_episode_lengths(monitor_files[0], run_dir)
+        plot_episode_rewards(monitor_files, run_dir)
+        plot_episode_lengths(monitor_files, run_dir)
 
     if not progress_path.exists():
         print(f"Progress file not found: {progress_path}")
     else:
         plot_losses(progress_path, run_dir)
 
-def plot_episode_rewards(monitor_path: Path, run_dir: Path) -> None:
-    df = read_monitor_csv(monitor_path)
+def _combine_monitor_data(monitor_paths: list[Path]) -> pd.DataFrame:
+    frames: list[pd.DataFrame] = []
+    for idx, monitor_path in enumerate(monitor_paths):
+        df = read_monitor_csv(monitor_path)
+        if "l" not in df.columns:
+            continue
+        df["env_id"] = idx
+        # Cumulative env steps let us interleave episodes from all vectorized envs by training progress.
+        df["env_steps"] = df["l"].cumsum()
+        frames.append(df)
 
-    if "r" not in df.columns:
-        print("Reward column 'r' not found in monitor.csv")
+    if not frames:
+        return pd.DataFrame()
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined = combined.sort_values(["env_steps", "env_id"]).reset_index(drop=True)
+    combined["episode"] = range(1, len(combined) + 1)
+    return combined
+
+
+def plot_episode_rewards(monitor_paths: list[Path], run_dir: Path) -> None:
+    df = _combine_monitor_data(monitor_paths)
+
+    if df.empty or "r" not in df.columns:
+        print("Reward column 'r' not found in monitor files")
         return
 
-    df["episode"] = range(1, len(df) + 1)
     df["reward_ma_20"] = df["r"].rolling(window=20, min_periods=1).mean()
 
     plt.figure(figsize=(10, 5))
@@ -234,17 +286,16 @@ def plot_episode_rewards(monitor_path: Path, run_dir: Path) -> None:
     plt.savefig(output_path)
     plt.show()
 
-    print(f"Saved reward curve to: {output_path}")
+    print(f"Saved reward curve to: {output_path} (combined {len(monitor_paths)} monitor files)")
 
 
-def plot_episode_lengths(monitor_path: Path, run_dir: Path) -> None:
-    df = read_monitor_csv(monitor_path)
+def plot_episode_lengths(monitor_paths: list[Path], run_dir: Path) -> None:
+    df = _combine_monitor_data(monitor_paths)
 
-    if "l" not in df.columns:
-        print("Episode length column 'l' not found in monitor.csv")
+    if df.empty or "l" not in df.columns:
+        print("Episode length column 'l' not found in monitor files")
         return
 
-    df["episode"] = range(1, len(df) + 1)
     df["length_ma_20"] = df["l"].rolling(window=20, min_periods=1).mean()
 
     plt.figure(figsize=(10, 5))
@@ -261,7 +312,7 @@ def plot_episode_lengths(monitor_path: Path, run_dir: Path) -> None:
     plt.savefig(output_path)
     plt.show()
 
-    print(f"Saved episode length curve to: {output_path}")
+    print(f"Saved episode length curve to: {output_path} (combined {len(monitor_paths)} monitor files)")
 
 def plot_losses(progress_path: Path, run_dir: Path) -> None:
     df = pd.read_csv(progress_path)
@@ -326,8 +377,8 @@ def plot_losses(progress_path: Path, run_dir: Path) -> None:
 
     print(f"Saved loss curves to: {output_path}")
 
-def render_random_episode() -> None:
-    env = CatchMeEnv(render_mode="human")
+def render_random_episode(max_steps: int = 600) -> None:
+    env = CatchMeEnv(render_mode="human", max_steps=max_steps)
     obs, info = env.reset()
     done = False
     while not done:

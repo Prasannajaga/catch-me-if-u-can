@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--catch-radius", type=float, default=0.075)
     parser.add_argument("--character-speed", type=float, default=0.035)
+    parser.add_argument(
+        "--continuous-run",
+        action="store_true",
+        help="Use continuous [dx, dy] model action instead of discrete action id.",
+    )
     return parser.parse_args()
 
 
@@ -98,7 +103,10 @@ def main() -> None:
                 )
 
                 action, _state = model.predict(obs, deterministic=True)
-                character.apply_action(int(action))
+                if args.continuous_run:
+                    apply_continuous_live_action(character, action)
+                else:
+                    character.apply_action(int(action))
 
                 distance = float(np.linalg.norm(character.position - player_position))
                 status_text = f"distance={distance:.3f}"
@@ -171,6 +179,25 @@ def sample_safe_position(
             return position
     # Fallback — centre of the screen.
     return np.array([0.5, 0.5], dtype=np.float32)
+
+
+def apply_continuous_live_action(character: Character, action: np.ndarray) -> bool:
+    """Apply continuous [dx, dy] action to the live character, mirroring training wrapper behavior."""
+    action_arr = np.asarray(action, dtype=np.float32).reshape(-1)
+    if action_arr.size < 2:
+        action_arr = np.pad(action_arr, (0, max(0, 2 - action_arr.size)))
+    direction = np.clip(action_arr[:2], -1.0, 1.0)
+
+    norm = float(np.linalg.norm(direction))
+    if norm > 1.0:
+        direction = direction / norm
+
+    character.velocity = (direction * float(character.max_speed)).astype(np.float32)
+    next_position = character.position + character.velocity
+    margin = float(character.radius)
+    hit_wall = bool(np.any(next_position < margin) or np.any(next_position > 1.0 - margin))
+    character.position = np.clip(next_position, margin, 1.0 - margin).astype(np.float32)
+    return hit_wall
 
 
 def stretch_edge_coordinate(value: float, margin: float) -> float:

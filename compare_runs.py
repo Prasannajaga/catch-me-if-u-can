@@ -201,8 +201,8 @@ def generate_html(data, output_file: Path):
                 align-items: center;
             }}
             .container {{
-                width: 100%;
-                max-width: 1400px;
+                width: min(96vw, 1900px);
+                margin: 0 auto;
             }}
             h1 {{
                 font-weight: 600;
@@ -212,8 +212,15 @@ def generate_html(data, output_file: Path):
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
             }}
-            .compare-table {{
+            .table-wrap {{
                 width: 100%;
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }}
+            .compare-table {{
+                width: max-content;
+                min-width: 100%;
                 border-collapse: separate;
                 border-spacing: 0;
                 background: var(--card-bg);
@@ -225,17 +232,18 @@ def generate_html(data, output_file: Path):
                 background-color: var(--border);
                 color: var(--accent);
                 text-align: left;
-                padding: 16px;
+                padding: 12px 10px;
                 font-weight: 600;
                 text-transform: uppercase;
-                font-size: 0.8rem;
+                font-size: 0.75rem;
                 letter-spacing: 0.05em;
                 white-space: nowrap;
             }}
             td {{
-                padding: 14px 16px;
+                padding: 10px 10px;
                 border-bottom: 1px solid var(--border);
-                font-size: 0.92rem;
+                font-size: 0.86rem;
+                white-space: nowrap;
             }}
             tr:last-child td {{
                 border-bottom: none;
@@ -243,12 +251,26 @@ def generate_html(data, output_file: Path):
             tr:hover td {{
                 background-color: rgba(56, 189, 248, 0.05);
             }}
+            @media (max-width: 900px) {{
+                body {{
+                    padding: 16px;
+                }}
+                h1 {{
+                    font-size: 1.6rem;
+                }}
+                th, td {{
+                    padding: 8px 6px;
+                    font-size: 0.75rem;
+                }}
+            }}
         </style>
     </head>
     <body>
         <div class="container">
             <h1>Run Comparison (Best to Worst)</h1>
-            {html_table}
+            <div class="table-wrap">
+                {html_table}
+            </div>
         </div>
     </body>
     </html>
